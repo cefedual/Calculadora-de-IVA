@@ -1,0 +1,998 @@
+
+<h2 class="sr-only">Gestor de DTEs El Salvador — importa JSON, edita y exporta anexos para Hacienda</h2>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,sans-serif;font-size:13px;color:#1a1a1a;background:#fff;}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:1rem 0 0.75rem;border-bottom:2px solid #185FA5;margin-bottom:1rem;}
+.hdr-title{font-size:17px;font-weight:500;color:#042C53;}
+.hdr-sub{font-size:11px;color:#185FA5;margin-top:2px;}
+.top-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.btn{cursor:pointer;font-family:var(--font-sans);font-size:12px;font-weight:500;padding:8px 14px;border-radius:6px;border:none;display:inline-flex;align-items:center;gap:5px;transition:opacity .15s;}
+.btn:hover{opacity:.85;}
+.btn-blue{background:#185FA5;color:#fff;}
+.btn-teal{background:#0F6E56;color:#fff;}
+.btn-amber{background:#BA7517;color:#fff;}
+.btn-red{background:#A32D2D;color:#fff;}
+.btn-danger{background:#FCEBEB;color:#A32D2D;border:1.5px solid #e5b3b3;}
+.btn-danger:hover{background:#f5d5d5;opacity:1;}
+.btn-outline{background:transparent;color:#185FA5;border:1.5px solid #185FA5;}
+.btn-outline:hover{background:#E6F1FB;opacity:1;}
+.btn-sm{padding:5px 10px;font-size:11px;}
+.tabs{display:flex;gap:4px;margin-bottom:1rem;}
+.tab{cursor:pointer;padding:9px 18px;font-size:13px;font-weight:500;border-radius:6px 6px 0 0;border:1.5px solid transparent;border-bottom:none;color:#666;background:#f0f0f0;}
+.tab.t-ccf.active{background:#E6F1FB;color:#042C53;border-color:#85B7EB;}
+.tab.t-cf.active{background:#EAF3DE;color:#173404;border-color:#97C459;}
+.tab.t-comp.active{background:#FAEEDA;color:#412402;border-color:#EF9F27;}
+.tab:hover:not(.active){background:#e0e0e0;}
+.panel{display:none;border:1.5px solid #85B7EB;border-radius:0 8px 8px 8px;padding:1rem;background:#fff;}
+.panel.t-cf-panel{border-color:#97C459;}
+.panel.t-comp-panel{border-color:#EF9F27;}
+.panel.active{display:block;}
+.p-toolbar{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;}
+.p-title{font-size:13px;font-weight:500;flex:1;color:#444;}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:1rem;}
+.stat{border-radius:8px;padding:10px 12px;}
+.stat-ccf{background:#E6F1FB;}
+.stat-cf{background:#EAF3DE;}
+.stat-comp{background:#FAEEDA;}
+.stat-label{font-size:11px;color:#185FA5;margin-bottom:3px;}
+.stat-cf .stat-label{color:#3B6D11;}
+.stat-comp .stat-label{color:#854F0B;}
+.stat-value{font-size:18px;font-weight:500;color:#042C53;}
+.stat-cf .stat-value{color:#173404;}
+.stat-comp .stat-value{color:#412402;}
+.tw{overflow-x:auto;border:1px solid #B5D4F4;border-radius:8px;}
+.tw.tw-cf{border-color:#C0DD97;}
+.tw.tw-comp{border-color:#FAC775;}
+table{width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;}
+th{padding:8px 8px;text-align:left;border-bottom:1px solid #B5D4F4;font-size:10px;font-weight:500;white-space:nowrap;color:#042C53;background:#E6F1FB;}
+.tw-cf th{border-color:#C0DD97;background:#EAF3DE;color:#173404;}
+.tw-comp th{border-color:#FAC775;background:#FAEEDA;color:#412402;}
+td{padding:7px 8px;border-bottom:0.5px solid #e8e8e8;color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#f5f8fc;}
+.amt{text-align:right;font-variant-numeric:tabular-nums;}
+.overlay{display:none;position:fixed;inset:0;background:rgba(10,20,40,0.65);align-items:flex-start;justify-content:center;padding-top:40px;z-index:50;}
+.overlay.open{display:flex;}
+.modal{background:#ffffff;border-radius:12px;border:2px solid #185FA5;padding:1.5rem;width:480px;max-width:96%;max-height:80vh;overflow-y:auto;color:#1a1a1a;}
+.modal-cf{border-color:#3B6D11;}
+.modal-comp{border-color:#854F0B;}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #e0e0e0;}
+.modal-hdr h3{font-size:15px;font-weight:500;color:#1a1a1a;}
+.close-btn{cursor:pointer;font-size:18px;color:#666;background:none;border:none;line-height:1;}
+.fg2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.fg{display:flex;flex-direction:column;gap:3px;margin-bottom:8px;}
+.fg.full{grid-column:1/-1;}
+.fg label{font-size:11px;color:#555;}
+.fg input,.fg select{padding:7px 10px;border:1.5px solid #ccc;border-radius:6px;font-family:var(--font-sans);font-size:13px;background:#fff;color:#1a1a1a;}
+.fg input:focus,.fg select:focus{outline:none;border-color:#185FA5;}
+.fg input[readonly]{opacity:.55;cursor:not-allowed;}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;padding-top:.75rem;border-top:1px solid #e0e0e0;}
+.json-drop{border:2px dashed #85B7EB;border-radius:8px;padding:1.5rem;text-align:center;cursor:pointer;margin-bottom:1rem;color:#185FA5;font-size:13px;font-weight:500;}
+.json-drop:hover{background:#E6F1FB;}
+.toast{position:absolute;bottom:16px;right:16px;background:#0F6E56;color:#fff;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:500;display:none;z-index:100;}
+.toast.show{display:block;}
+/* Inline selects en tabla compras */
+.sel-cls{width:100%;font-size:10px;padding:2px 3px;border:1px solid #ddb86a;border-radius:4px;background:#fff;color:#412402;cursor:pointer;}
+.sel-cls:focus{outline:none;border-color:#854F0B;}
+/* Classify modal rows */
+#classify-list>div:last-child{border-bottom:none!important;}
+#classify-list>div:hover{background:#f8f8f8;}
+#classify-list>div:first-child{font-size:10px;font-weight:600;color:#555;background:#f0f0f0;border-radius:8px 8px 0 0;}
+/* Editable header */
+.hdr-editable{cursor:text;border-bottom:1px dashed #85B7EB;min-width:60px;display:inline-block;}
+.hdr-editable:focus{outline:none;border-bottom:1px solid #185FA5;}
+</style>
+
+<div style="position:relative;min-height:600px;" id="app">
+
+<div class="hdr">
+  <div>
+    <div class="hdr-title">Libro de IVA — El Salvador</div>
+    <div class="hdr-sub" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:4px;">
+      <span contenteditable="true" class="hdr-editable" id="hdr-nombre" title="Haz clic para editar nombre">Mi empresa</span>
+      <span style="display:flex;align-items:center;gap:5px;font-size:11px;">
+        <label style="color:#185FA5;font-weight:500;">NRC propio:</label>
+        <input id="mi-nrc" type="text" placeholder="ej. 123456" oninput="saveMiNRC()"
+          style="padding:2px 7px;border:1.5px solid #85B7EB;border-radius:5px;font-size:11px;width:90px;background:#fff;color:#042C53;font-weight:600;">
+        <span id="nrc-hint" style="font-size:10px;color:#BA7517;display:none;">⚠️ Ingresá tu NRC para clasificar automáticamente</span>
+      </span>
+    </div>
+  </div>
+  <div class="top-actions">
+    <button class="btn btn-outline" onclick="document.getElementById('json-input').click()">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1v10M4 7l4 4 4-4M2 13h12" stroke="#185FA5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Importar JSON
+    </button>
+    <input type="file" id="json-input" accept=".json" multiple style="display:none" onchange="previewJSON(this)">
+    <button class="btn btn-teal" onclick="exportExcel()">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 2h7l3 3v9H3V2z" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/><path d="M10 2v3h3M6 8l4 4M10 8l-4 4" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Bajar Excel
+    </button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab t-ccf active" onclick="switchTab('ccf')">Contribuyentes (CCF)</div>
+  <div class="tab t-cf" onclick="switchTab('cf')">Consumidor Final</div>
+  <div class="tab t-comp" onclick="switchTab('comp')">Compras</div>
+</div>
+
+<!-- PANEL CCF -->
+<div class="panel active" id="p-ccf">
+  <div class="p-toolbar">
+    <span class="p-title">Ventas con comprobante de crédito fiscal</span>
+    <button class="btn btn-outline btn-sm" onclick="openModal('ccf')">+ Agregar</button>
+    <button class="btn btn-blue btn-sm" onclick="exportCSV('ccf')">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 1v10M4 7l4 4 4-4M2 13h12" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      CSV Hacienda
+    </button>
+    <button class="btn btn-danger btn-sm" onclick="clearAll('ccf')" title="Eliminar todos los registros CCF">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 9h8l1-9" stroke="#A32D2D" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Limpiar todo
+    </button>
+  </div>
+  <div class="stats" id="st-ccf"></div>
+  <div class="tw">
+    <table>
+      <thead><tr>
+        <th style="width:80px">Fecha</th>
+        <th style="width:55px">NRC</th>
+        <th style="width:170px">Receptor</th>
+        <th style="width:65px" class="amt">Gravada</th>
+        <th style="width:60px" class="amt">IVA</th>
+        <th style="width:65px" class="amt">Total</th>
+        <th style="width:36px"></th>
+      </tr></thead>
+      <tbody id="tb-ccf"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- PANEL CF -->
+<div class="panel t-cf-panel" id="p-cf">
+  <div class="p-toolbar">
+    <span class="p-title">Ventas a consumidor final — facturas</span>
+    <button class="btn btn-outline btn-sm" style="color:#3B6D11;border-color:#3B6D11;" onclick="openModal('cf')">+ Agregar</button>
+    <button class="btn btn-sm" style="background:#3B6D11;color:#fff;" onclick="exportCSV('cf')">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 1v10M4 7l4 4 4-4M2 13h12" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      CSV Hacienda
+    </button>
+    <button class="btn btn-danger btn-sm" onclick="clearAll('cf')" title="Eliminar todos los registros CF">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 9h8l1-9" stroke="#A32D2D" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Limpiar todo
+    </button>
+  </div>
+  <div class="stats" id="st-cf"></div>
+  <div class="tw tw-cf">
+    <table>
+      <thead><tr>
+        <th style="width:80px">Fecha</th>
+        <th style="width:180px">N° Control</th>
+        <th style="width:80px" class="amt">Gravada</th>
+        <th style="width:70px" class="amt">Total</th>
+        <th style="width:36px"></th>
+      </tr></thead>
+      <tbody id="tb-cf"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- PANEL COMPRAS -->
+<div class="panel t-comp-panel" id="p-comp">
+  <div class="p-toolbar">
+    <span class="p-title">Registro de compras</span>
+    <button class="btn btn-outline btn-sm" style="color:#854F0B;border-color:#854F0B;" onclick="openModal('comp')">+ Agregar</button>
+    <button class="btn btn-sm" style="background:#854F0B;color:#fff;" onclick="exportCSV('comp')">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 1v10M4 7l4 4 4-4M2 13h12" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      CSV Hacienda
+    </button>
+    <button class="btn btn-danger btn-sm" onclick="clearAll('comp')" title="Eliminar todos los registros de Compras">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 9h8l1-9" stroke="#A32D2D" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Limpiar todo
+    </button>
+  </div>
+  <div class="stats" id="st-comp"></div>
+  <div class="tw tw-comp">
+    <table>
+      <thead><tr>
+        <th style="width:72px">Fecha</th>
+        <th style="width:50px">NRC</th>
+        <th style="width:120px">Proveedor</th>
+        <th style="width:55px" class="amt" title="No Sujeta + Exenta">NS/Ex</th>
+        <th style="width:55px" class="amt">Gravada</th>
+        <th style="width:50px" class="amt">IVA</th>
+        <th style="width:55px" class="amt">Total</th>
+        <th style="width:72px" title="Tipo de Operación">Tipo Op.</th>
+        <th style="width:72px" title="Clasificación contable">Clasif.</th>
+        <th style="width:65px" title="Sector económico">Sector</th>
+        <th style="width:80px" title="Tipo de Costo/Gasto">Costo/Gasto</th>
+        <th style="width:34px"></th>
+      </tr></thead>
+      <tbody id="tb-comp"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MODAL CCF -->
+<div class="overlay" id="ov-ccf">
+<div class="modal">
+  <div class="modal-hdr"><h3 id="mt-ccf" style="color:#042C53">Nuevo CCF</h3><button class="close-btn" onclick="closeModal('ccf')">&#x2715;</button></div>
+  <div class="fg2">
+    <div class="fg"><label>Fecha (DD/MM/AAAA)</label><input id="ccf-fecha" placeholder="17/03/2026"></div>
+    <div class="fg"><label>NRC receptor</label><input id="ccf-nrc"></div>
+  </div>
+  <div class="fg"><label>Sello de recepción</label><input id="ccf-sello"></div>
+  <div class="fg"><label>N° Control</label><input id="ccf-ctrl" placeholder="DTE-03-M001P001-..."></div>
+  <div class="fg"><label>Código generación (sin guiones)</label><input id="ccf-cod"></div>
+  <div class="fg"><label>Receptor</label><input id="ccf-rec"></div>
+  <div class="fg2">
+    <div class="fg"><label>No sujetas</label><input type="number" id="ccf-ns" value="0" step="0.01"></div>
+    <div class="fg"><label>Exentas</label><input type="number" id="ccf-ex" value="0" step="0.01"></div>
+    <div class="fg"><label>Gravadas</label><input type="number" id="ccf-grav" value="0" step="0.01" oninput="calcCCF()"></div>
+    <div class="fg"><label>IVA (13%)</label><input type="number" id="ccf-iva" value="0" step="0.01" oninput="calcCCFtotal()"></div>
+    <div class="fg"><label>IVA percibido</label><input type="number" id="ccf-ivap" value="0" step="0.01"></div>
+    <div class="fg"><label>IVA retenido</label><input type="number" id="ccf-ivar" value="0" step="0.01"></div>
+    <div class="fg full"><label>Total</label><input type="number" id="ccf-total" value="0" step="0.01" readonly></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-outline" onclick="closeModal('ccf')">Cancelar</button>
+    <button class="btn btn-blue" onclick="saveRow('ccf')">Guardar</button>
+  </div>
+</div></div>
+
+<!-- MODAL CF -->
+<div class="overlay" id="ov-cf">
+<div class="modal modal-cf">
+  <div class="modal-hdr"><h3 id="mt-cf" style="color:#173404">Nueva Factura CF</h3><button class="close-btn" onclick="closeModal('cf')">&#x2715;</button></div>
+  <div class="fg2">
+    <div class="fg"><label>Fecha</label><input id="cf-fecha" placeholder="27/03/2026"></div>
+  </div>
+  <div class="fg"><label>N° Control (sin guiones)</label><input id="cf-ctrl"></div>
+  <div class="fg"><label>Sello de recepción</label><input id="cf-sello"></div>
+  <div class="fg"><label>Código generación (sin guiones)</label><input id="cf-cod"></div>
+  <div class="fg2">
+    <div class="fg"><label>No sujetas</label><input type="number" id="cf-ns" value="0" step="0.01"></div>
+    <div class="fg"><label>Exentas</label><input type="number" id="cf-ex" value="0" step="0.01"></div>
+    <div class="fg"><label>Gravadas (IVA incluido)</label><input type="number" id="cf-grav" value="0" step="0.01" oninput="calcCFtotal()"></div>
+    <div class="fg full"><label>Total</label><input type="number" id="cf-total" value="0" step="0.01" readonly></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-outline" onclick="closeModal('cf')">Cancelar</button>
+    <button class="btn btn-sm" style="background:#3B6D11;color:#fff;" onclick="saveRow('cf')">Guardar</button>
+  </div>
+</div></div>
+
+<!-- MODAL COMPRAS -->
+<div class="overlay" id="ov-comp">
+<div class="modal modal-comp">
+  <div class="modal-hdr"><h3 id="mt-comp" style="color:#412402">Nueva compra</h3><button class="close-btn" onclick="closeModal('comp')">&#x2715;</button></div>
+  <div class="fg2">
+    <div class="fg"><label>Fecha</label><input id="comp-fecha" placeholder="3/3/2026"></div>
+    <div class="fg"><label>NRC proveedor</label><input id="comp-nrc"></div>
+  </div>
+  <div class="fg"><label>Código generación (sin guiones)</label><input id="comp-cod"></div>
+  <div class="fg"><label>Proveedor</label><input id="comp-prov"></div>
+  <div class="fg2">
+    <div class="fg"><label>No sujeta (FOVIAL/COTRANS)</label><input type="number" id="comp-ns" value="0" step="0.01" oninput="calcCompTotal()"></div>
+    <div class="fg"><label>Exenta</label><input type="number" id="comp-ex" value="0" step="0.01" oninput="calcCompTotal()"></div>
+    <div class="fg"><label>Gravada</label><input type="number" id="comp-grav" value="0" step="0.01" oninput="calcComp()"></div>
+    <div class="fg"><label>IVA (13%)</label><input type="number" id="comp-iva" value="0" step="0.01" oninput="calcCompTotal()"></div>
+    <div class="fg full"><label>Total</label><input type="number" id="comp-total" value="0" step="0.01" readonly></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-outline" onclick="closeModal('comp')">Cancelar</button>
+    <button class="btn btn-sm" style="background:#854F0B;color:#fff;" onclick="saveRow('comp')">Guardar</button>
+  </div>
+</div></div>
+
+<!-- MODAL CLASIFICADOR JSON -->
+<div class="overlay" id="ov-classify" style="z-index:60;">
+<div class="modal" style="width:560px;border-color:#185FA5;">
+  <div class="modal-hdr">
+    <h3 style="color:#042C53">📋 Revisar documentos a importar</h3>
+    <button class="close-btn" onclick="document.getElementById('ov-classify').classList.remove('open')">&#x2715;</button>
+  </div>
+  <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px;">Se detectaron los siguientes documentos. Verificá la clasificación antes de confirmar.</p>
+  <div id="classify-list" style="max-height:340px;overflow-y:auto;border:1px solid var(--color-border-secondary);border-radius:8px;"></div>
+  <div id="classify-unrecognized" style="display:none;margin-top:10px;padding:8px 12px;background:#FCEBEB;border-radius:6px;font-size:11px;color:#A32D2D;"></div>
+  <div class="modal-footer">
+    <span id="classify-summary" style="flex:1;font-size:11px;color:var(--color-text-secondary);align-self:center;"></span>
+    <button class="btn btn-outline" onclick="document.getElementById('ov-classify').classList.remove('open')">Cancelar</button>
+    <button class="btn btn-blue" onclick="confirmImport()">Confirmar importación</button>
+  </div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ── Opciones de clasificación ──────────────────────────────────────────────
+var OPT_TIPO_OP = [
+  {v:'1', l:'1 Gravada', tip:'Operación gravada con IVA'},
+  {v:'2', l:'2 No grav./exenta', tip:'No gravada o exenta'},
+  {v:'3', l:'3 Excluido/no renta', tip:'Excluido o no constituye Renta'},
+  {v:'4', l:'4 Mixta', tip:'Contribuyentes con regímenes especiales/incentivos fiscales'},
+  {v:'8', l:'8 Más de 1 anexo', tip:'Operaciones informadas en más de 1 anexo'},
+  {v:'9', l:'9 Excepciones', tip:'Instituciones públicas, no inscritos en IVA, etc.'},
+  {v:'0', l:'0 Ant. feb/2024', tip:'Períodos tributarios anteriores a febrero 2024'}
+];
+var OPT_CLASIF = [
+  {v:'1', l:'1 Costo', tip:'Costo'},
+  {v:'2', l:'2 Gasto', tip:'Gasto'},
+  {v:'8', l:'8 Más de 1 anexo', tip:'Operaciones informadas en más de 1 anexo'},
+  {v:'9', l:'9 Excepciones', tip:'Instituciones públicas, no inscritos en IVA, etc.'},
+  {v:'0', l:'0 Ant. feb/2024', tip:'Períodos anteriores a febrero 2024'}
+];
+var OPT_SECTOR = [
+  {v:'1', l:'1 Industria', tip:'Industria'},
+  {v:'2', l:'2 Comercio', tip:'Comercio'},
+  {v:'3', l:'3 Agropecuaria', tip:'Agropecuaria'},
+  {v:'4', l:'4 Servicios/Prof.', tip:'Servicios, Profesiones, Artes y Oficios'},
+  {v:'8', l:'8 Más de 1 anexo', tip:'Operaciones informadas en más de 1 anexo'},
+  {v:'9', l:'9 Excepciones', tip:'Instituciones públicas, no inscritos en IVA, etc.'},
+  {v:'0', l:'0 Ant. feb/2024', tip:'Períodos anteriores a febrero 2024'}
+];
+var OPT_COSTO = [
+  {v:'1', l:'1 Gto. venta', tip:'Gasto de Venta sin donación'},
+  {v:'2', l:'2 Gto. admin.', tip:'Gasto de Administración sin donación'},
+  {v:'3', l:'3 Gto. financiero', tip:'Gasto financiero sin donación'},
+  {v:'4', l:'4 Costo compras/imp.', tip:'Costo artículos producidos/comprados, importaciones/internaciones'},
+  {v:'5', l:'5 Costo interno', tip:'Costo de artículos producidos/comprados interno'},
+  {v:'6', l:'6 Costos ind. fab.', tip:'Costos indirectos de fabricación'},
+  {v:'7', l:'7 Mano de Obra', tip:'Mano de Obra'},
+  {v:'8', l:'8 Más de 1 anexo', tip:'Operaciones informadas en más de 1 anexo'},
+  {v:'9', l:'9 Excepciones', tip:'Instituciones públicas, no inscritos en IVA, etc.'},
+  {v:'0', l:'0 Ant. feb/2024', tip:'Períodos anteriores a febrero 2024'}
+];
+
+function buildSelect(opts, val, cls, onChange) {
+  var s = document.createElement('select');
+  s.className = 'sel-cls';
+  s.title = 'Haz clic para seleccionar';
+  opts.forEach(function(o) {
+    var opt = document.createElement('option');
+    opt.value = o.v;
+    opt.textContent = o.l;
+    opt.title = o.tip;
+    if (o.v === val) opt.selected = true;
+    s.appendChild(opt);
+  });
+  s.onchange = onChange;
+  return s;
+}
+
+// ── Datos ──────────────────────────────────────────────────────────────────
+var data = {
+  ccf: [
+    {fecha:"17/03/2026",sello:"2026FD6E0AC1C1A64CA3937184C2DC6266B0QHYN",ctrl:"DTE-03-M001P001-000000000000002",cod:"8DF9F9E16ABB4CC0BE400C21451CE66B",nrc:"5223",rec:"METROCENTRO, S.A. DE C.V.",ns:0,ex:0,grav:6724,iva:874.12,ivap:0,ivar:0,total:7598.12},
+    {fecha:"20/03/2026",sello:"2026336C378F165F458296A5F8828F5986EDDOFJ",ctrl:"DTE-03-M001P001-000000000000003",cod:"622C0E7B657441B0A050D59369AC23AC",nrc:"2679020",rec:"INVERSIONES MENDEZ MILLER, S.A. DE C.V.",ns:0,ex:0,grav:500,iva:65,ivap:0,ivar:0,total:565},
+    {fecha:"20/03/2026",sello:"20267F65CA6409EB4A4C8157B9EE5DEDDE4EDZMY",ctrl:"DTE-03-M001P001-000000000000004",cod:"CECEFBB40AFE41969F3BE62E4B679526",nrc:"227633",rec:"OSCAR ANTONIO FRANCISCO LARA RIOS",ns:0,ex:0,grav:575,iva:74.75,ivap:0,ivar:0,total:649.75},
+    {fecha:"25/03/2026",sello:"2026CDC8CF5D59D2472DB6A6943ED28A38C54KS5",ctrl:"DTE-03-M001P001-000000000000005",cod:"D0A4DB90F77F4825A7D06F3771E938A5",nrc:"2679020",rec:"INVERSIONES MENDEZ MILLER, S.A. DE C.V.",ns:0,ex:0,grav:350,iva:45.5,ivap:0,ivar:0,total:395.5}
+  ],
+  cf: [
+    {fecha:"27/03/2026",ctrl:"DTE01M001P001000000000000002",sello:"2026470E74AE3BBF4AA4AE65785204ADF6ECZKME",cod:"BE410AA306F84511BA7FF352DA8C2B97",ns:0,ex:0,grav:1469,total:1469}
+  ],
+  comp: [
+    {fecha:"3/3/2026",cod:"176C74DABE2F440DA44EC4A08DE03121",nrc:"1876047",prov:"GUILLERMO ERNESTO MIGUEL BAHAIA",ns:1.11,ex:0,grav:12.30,iva:1.60,total:15.01,tipoOp:'1',clasif:'1',sector:'4',tipoCosto:'4'},
+    {fecha:"6/3/2026",cod:"85E5BE2C94344D9CA24D190925A02A93",nrc:"1468049",prov:"LUIGEMI, S.A. DE C.V.",ns:1.57,ex:0,grav:16.31,iva:2.12,total:20.00,tipoOp:'1',clasif:'1',sector:'2',tipoCosto:'4'},
+    {fecha:"7/3/2026",cod:"F5F4637C70BC4F21AD8060FF1CDA3C0E",nrc:"1876047",prov:"GUILLERMO ERNESTO MIGUEL BAHAIA",ns:0.74,ex:0,grav:8.20,iva:1.07,total:10.01,tipoOp:'1',clasif:'1',sector:'4',tipoCosto:'4'},
+    {fecha:"9/3/2026",cod:"50DBF9CDDE6A4DE0B87260A6DF406D0E",nrc:"1876047",prov:"GUILLERMO ERNESTO MIGUEL BAHAIA",ns:1.57,ex:0,grav:16.31,iva:2.12,total:20.00,tipoOp:'1',clasif:'1',sector:'4',tipoCosto:'4'},
+    {fecha:"10/3/2026",cod:"DF32D0CD424C452C9044FF50DA3630C1",nrc:"2595378",prov:"RENE MAURICIO TORRES GRANADOS",ns:0,ex:0,grav:427.50,iva:55.58,total:483.08,tipoOp:'1',clasif:'2',sector:'4',tipoCosto:'1'},
+    {fecha:"13/3/2026",cod:"5D57D68E39214EA99F5E26B9C53EC757",nrc:"1512568",prov:"COMLUB, S.A. DE C.V.",ns:1.57,ex:0,grav:16.31,iva:2.12,total:20.00,tipoOp:'1',clasif:'1',sector:'2',tipoCosto:'4'},
+    {fecha:"14/3/2026",cod:"DEF226EB542944FB826F33B731445A2A",nrc:"2447015",prov:"ISHOP EL SALVADOR, S.A. DE C.V.",ns:0,ex:0,grav:1149.56,iva:149.44,total:1299.00,tipoOp:'1',clasif:'1',sector:'2',tipoCosto:'4'},
+    {fecha:"21/03/2026",cod:"7AECF67B345E447BA53EB677845561FC",nrc:"1468049",prov:"LUIGEMI, S.A. DE C.V.",ns:1.11,ex:0,grav:12.29,iva:1.60,total:15.00,tipoOp:'1',clasif:'1',sector:'2',tipoCosto:'4'},
+    {fecha:"24/03/2026",cod:"87AE0AF4B6464029BD88EDC5DC5A74CE",nrc:"1468049",prov:"LUIGEMI, S.A. DE C.V.",ns:1.56,ex:0,grav:16.32,iva:2.12,total:20.00,tipoOp:'1',clasif:'1',sector:'2',tipoCosto:'4'},
+    {fecha:"25/3/2026",cod:"021EC93F6EFC41E4B9646DA4F21177F0",nrc:"51780",prov:"DRY CLEANING MARTINIZING, S.A. DE C.V.",ns:0,ex:0,grav:17.65,iva:2.29,total:19.94,tipoOp:'1',clasif:'2',sector:'4',tipoCosto:'2'},
+    {fecha:"25/3/2026",cod:"DA12616B39B84B8385DBC2D1ABF8A461",nrc:"2595378",prov:"RENE MAURICIO TORRES GRANADOS",ns:0,ex:0,grav:1305.00,iva:169.65,total:1474.65,tipoOp:'1',clasif:'2',sector:'4',tipoCosto:'1'},
+    {fecha:"28/03/2026",cod:"3E622BCE05C449B1B8348FDC71E6B2D6",nrc:"1876047",prov:"GUILLERMO ERNESTO MIGUEL BAHAIA",ns:1.49,ex:0,grav:16.38,iva:2.13,total:20.00,tipoOp:'1',clasif:'1',sector:'4',tipoCosto:'4'},
+    {fecha:"28/03/2026",cod:"A53A4D1C75FD4B52AC05EB22345D3FB4",nrc:"1468049",prov:"LUIGEMI, S.A. DE C.V.",ns:1.17,ex:0,grav:12.24,iva:1.59,total:15.00,tipoOp:'1',clasif:'1',sector:'2',tipoCosto:'4'},
+    {fecha:"31/3/2026",cod:"98757C088BF34EFAA055566E514417FC",nrc:"1876047",prov:"GUILLERMO ERNESTO MIGUEL BAHAIA",ns:1.40,ex:0,grav:16.46,iva:2.14,total:20.00,tipoOp:'1',clasif:'1',sector:'4',tipoCosto:'4'}
+  ]
+};
+var editIdx = {ccf:-1, cf:-1, comp:-1};
+
+function f(n){return parseFloat(n).toFixed(2);}
+function fmt(n){return '$'+parseFloat(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2500);}
+
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach(function(el){el.classList.remove('active');});
+  document.querySelectorAll('.panel').forEach(function(el){el.classList.remove('active');});
+  document.querySelector('.tab.t-'+t).classList.add('active');
+  document.getElementById('p-'+t).classList.add('active');
+}
+
+// ── Limpiar todo ──────────────────────────────────────────────────────────
+function clearAll(t) {
+  var label = t==='ccf' ? 'CCF (Contribuyentes)' : t==='cf' ? 'Consumidor Final' : 'Compras';
+  if (confirm('¿Limpiar todos los registros de ' + label + '?\n\nEsta acción no se puede deshacer.')) {
+    data[t] = [];
+    renderAll();
+    showToast('Registros de ' + label + ' eliminados');
+  }
+}
+
+// ── Render CCF ────────────────────────────────────────────────────────────
+function renderCCF(){
+  var tb=document.getElementById('tb-ccf'),tot={grav:0,iva:0,total:0};
+  tb.innerHTML='';
+  data.ccf.forEach(function(d,i){
+    tot.grav+=d.grav;tot.iva+=d.iva;tot.total+=d.total;
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+d.fecha+'</td><td>'+d.nrc+'</td><td title="'+d.rec+'">'+d.rec+'</td><td class="amt">'+f(d.grav)+'</td><td class="amt">'+f(d.iva)+'</td><td class="amt" style="font-weight:500">'+f(d.total)+'</td><td style="text-align:center"><button class="btn btn-sm" style="background:#FCEBEB;color:#A32D2D;border:none;padding:3px 7px" onclick="delRow(\'ccf\','+i+')">&#x2715;</button></td>';
+    tr.ondblclick=function(){editRow('ccf',i);};
+    tb.appendChild(tr);
+  });
+  document.getElementById('st-ccf').innerHTML='<div class="stat stat-ccf"><div class="stat-label">Documentos</div><div class="stat-value">'+data.ccf.length+'</div></div><div class="stat stat-ccf"><div class="stat-label">Total gravado</div><div class="stat-value">'+fmt(tot.grav)+'</div></div><div class="stat stat-ccf"><div class="stat-label">Total IVA</div><div class="stat-value">'+fmt(tot.iva)+'</div></div><div class="stat stat-ccf"><div class="stat-label">Total facturado</div><div class="stat-value">'+fmt(tot.total)+'</div></div>';
+}
+
+// ── Render CF ─────────────────────────────────────────────────────────────
+function renderCF(){
+  var tb=document.getElementById('tb-cf'),tot={grav:0,total:0};
+  tb.innerHTML='';
+  data.cf.forEach(function(d,i){
+    tot.grav+=d.grav;tot.total+=d.total;
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+d.fecha+'</td><td style="font-size:10px">'+d.ctrl+'</td><td class="amt">'+f(d.grav)+'</td><td class="amt" style="font-weight:500">'+f(d.total)+'</td><td style="text-align:center"><button class="btn btn-sm" style="background:#FCEBEB;color:#A32D2D;border:none;padding:3px 7px" onclick="delRow(\'cf\','+i+')">&#x2715;</button></td>';
+    tr.ondblclick=function(){editRow('cf',i);};
+    tb.appendChild(tr);
+  });
+  document.getElementById('st-cf').innerHTML='<div class="stat stat-cf"><div class="stat-label">Documentos</div><div class="stat-value">'+data.cf.length+'</div></div><div class="stat stat-cf"><div class="stat-label">Total gravado</div><div class="stat-value">'+fmt(tot.grav)+'</div></div><div class="stat stat-cf"><div class="stat-label">Total</div><div class="stat-value">'+fmt(tot.total)+'</div></div>';
+}
+
+// ── Render Compras ────────────────────────────────────────────────────────
+function renderComp(){
+  var tb=document.getElementById('tb-comp'),tot={grav:0,iva:0,total:0};
+  tb.innerHTML='';
+  data.comp.forEach(function(d,i){
+    tot.grav+=d.grav;tot.iva+=d.iva;tot.total+=d.total;
+    // Asegurar defaults
+    if(!d.tipoOp) d.tipoOp='1';
+    if(!d.clasif) d.clasif='1';
+    if(!d.sector) d.sector='4';
+    if(!d.tipoCosto) d.tipoCosto='4';
+
+    var tr=document.createElement('tr');
+    // Celdas de texto
+    tr.innerHTML='<td>'+d.fecha+'</td><td>'+d.nrc+'</td><td title="'+d.prov+'">'+d.prov+'</td><td class="amt" style="color:#854F0B">'+f(d.ns+d.ex)+'</td><td class="amt">'+f(d.grav)+'</td><td class="amt">'+f(d.iva)+'</td><td class="amt" style="font-weight:500">'+f(d.total)+'</td>';
+
+    // Celda Tipo Operación
+    var tdOp=document.createElement('td');
+    tdOp.style.overflow='visible';
+    var selOp=buildSelect(OPT_TIPO_OP, d.tipoOp, 'sel-cls', function(){data.comp[i].tipoOp=this.value;});
+    tdOp.appendChild(selOp);
+    tr.appendChild(tdOp);
+
+    // Celda Clasificación
+    var tdCl=document.createElement('td');
+    tdCl.style.overflow='visible';
+    var selCl=buildSelect(OPT_CLASIF, d.clasif, 'sel-cls', function(){data.comp[i].clasif=this.value;});
+    tdCl.appendChild(selCl);
+    tr.appendChild(tdCl);
+
+    // Celda Sector
+    var tdSe=document.createElement('td');
+    tdSe.style.overflow='visible';
+    var selSe=buildSelect(OPT_SECTOR, d.sector, 'sel-cls', function(){data.comp[i].sector=this.value;});
+    tdSe.appendChild(selSe);
+    tr.appendChild(tdSe);
+
+    // Celda Tipo Costo/Gasto
+    var tdCg=document.createElement('td');
+    tdCg.style.overflow='visible';
+    var selCg=buildSelect(OPT_COSTO, d.tipoCosto, 'sel-cls', function(){data.comp[i].tipoCosto=this.value;});
+    tdCg.appendChild(selCg);
+    tr.appendChild(tdCg);
+
+    // Botón eliminar
+    var tdDel=document.createElement('td');
+    tdDel.style.textAlign='center';
+    tdDel.innerHTML='<button class="btn btn-sm" style="background:#FCEBEB;color:#A32D2D;border:none;padding:3px 7px" onclick="delRow(\'comp\','+i+')">&#x2715;</button>';
+    tr.appendChild(tdDel);
+
+    tr.ondblclick=function(){editRow('comp',i);};
+    tb.appendChild(tr);
+  });
+  document.getElementById('st-comp').innerHTML='<div class="stat stat-comp"><div class="stat-label">Documentos</div><div class="stat-value">'+data.comp.length+'</div></div><div class="stat stat-comp"><div class="stat-label">Total gravado</div><div class="stat-value">'+fmt(tot.grav)+'</div></div><div class="stat stat-comp"><div class="stat-label">Total IVA</div><div class="stat-value">'+fmt(tot.iva)+'</div></div><div class="stat stat-comp"><div class="stat-label">Total compras</div><div class="stat-value">'+fmt(tot.total)+'</div></div>';
+}
+
+function renderAll(){renderCCF();renderCF();renderComp();}
+
+// ── Modal helpers ─────────────────────────────────────────────────────────
+function openModal(t){editIdx[t]=-1;clearForm(t);document.getElementById('mt-'+t).textContent=t==='ccf'?'Nuevo CCF':t==='cf'?'Nueva Factura CF':'Nueva compra';document.getElementById('ov-'+t).classList.add('open');}
+function closeModal(t){document.getElementById('ov-'+t).classList.remove('open');}
+
+function clearForm(t){
+  if(t==='ccf'){['ccf-fecha','ccf-sello','ccf-ctrl','ccf-cod','ccf-nrc','ccf-rec'].forEach(function(id){document.getElementById(id).value='';});['ccf-ns','ccf-ex','ccf-grav','ccf-iva','ccf-ivap','ccf-ivar','ccf-total'].forEach(function(id){document.getElementById(id).value='0';});}
+  else if(t==='cf'){['cf-fecha','cf-ctrl','cf-sello','cf-cod'].forEach(function(id){document.getElementById(id).value='';});['cf-ns','cf-ex','cf-grav','cf-total'].forEach(function(id){document.getElementById(id).value='0';});}
+  else{['comp-fecha','comp-cod','comp-nrc','comp-prov'].forEach(function(id){document.getElementById(id).value='';});['comp-ns','comp-ex','comp-grav','comp-iva','comp-total'].forEach(function(id){document.getElementById(id).value='0';});}
+}
+
+function editRow(t,i){
+  editIdx[t]=i;var d=data[t][i];
+  if(t==='ccf'){document.getElementById('ccf-fecha').value=d.fecha;document.getElementById('ccf-sello').value=d.sello;document.getElementById('ccf-ctrl').value=d.ctrl;document.getElementById('ccf-cod').value=d.cod;document.getElementById('ccf-nrc').value=d.nrc;document.getElementById('ccf-rec').value=d.rec;document.getElementById('ccf-ns').value=d.ns;document.getElementById('ccf-ex').value=d.ex;document.getElementById('ccf-grav').value=d.grav;document.getElementById('ccf-iva').value=d.iva;document.getElementById('ccf-ivap').value=d.ivap;document.getElementById('ccf-ivar').value=d.ivar;document.getElementById('ccf-total').value=d.total;document.getElementById('mt-ccf').textContent='Editar CCF';}
+  else if(t==='cf'){document.getElementById('cf-fecha').value=d.fecha;document.getElementById('cf-ctrl').value=d.ctrl;document.getElementById('cf-sello').value=d.sello;document.getElementById('cf-cod').value=d.cod;document.getElementById('cf-ns').value=d.ns;document.getElementById('cf-ex').value=d.ex;document.getElementById('cf-grav').value=d.grav;document.getElementById('cf-total').value=d.total;document.getElementById('mt-cf').textContent='Editar CF';}
+  else{document.getElementById('comp-fecha').value=d.fecha;document.getElementById('comp-cod').value=d.cod;document.getElementById('comp-nrc').value=d.nrc;document.getElementById('comp-prov').value=d.prov;document.getElementById('comp-ns').value=d.ns;document.getElementById('comp-ex').value=d.ex;document.getElementById('comp-grav').value=d.grav;document.getElementById('comp-iva').value=d.iva;document.getElementById('comp-total').value=d.total;document.getElementById('mt-comp').textContent='Editar compra';}
+  document.getElementById('ov-'+t).classList.add('open');
+}
+
+function delRow(t,i){if(confirm('¿Eliminar este registro?')){data[t].splice(i,1);renderAll();}}
+
+// ── Cálculos ──────────────────────────────────────────────────────────────
+function calcCCF(){var g=parseFloat(document.getElementById('ccf-grav').value)||0;document.getElementById('ccf-iva').value=(g*0.13).toFixed(2);calcCCFtotal();}
+function calcCCFtotal(){var g=parseFloat(document.getElementById('ccf-grav').value)||0,iv=parseFloat(document.getElementById('ccf-iva').value)||0,ivp=parseFloat(document.getElementById('ccf-ivap').value)||0,ivr=parseFloat(document.getElementById('ccf-ivar').value)||0;document.getElementById('ccf-total').value=(g+iv+ivp-ivr).toFixed(2);}
+function calcCFtotal(){var g=parseFloat(document.getElementById('cf-grav').value)||0;document.getElementById('cf-total').value=g.toFixed(2);}
+function calcComp(){var g=parseFloat(document.getElementById('comp-grav').value)||0;document.getElementById('comp-iva').value=(g*0.13).toFixed(2);calcCompTotal();}
+function calcCompTotal(){
+  var ns=parseFloat(document.getElementById('comp-ns').value)||0;
+  var ex=parseFloat(document.getElementById('comp-ex').value)||0;
+  var g=parseFloat(document.getElementById('comp-grav').value)||0;
+  var iv=parseFloat(document.getElementById('comp-iva').value)||0;
+  document.getElementById('comp-total').value=(ns+ex+g+iv).toFixed(2);
+}
+
+// ── Guardar fila ──────────────────────────────────────────────────────────
+function saveRow(t){
+  var d;
+  if(t==='ccf'){d={fecha:document.getElementById('ccf-fecha').value,sello:document.getElementById('ccf-sello').value,ctrl:document.getElementById('ccf-ctrl').value,cod:document.getElementById('ccf-cod').value,nrc:document.getElementById('ccf-nrc').value,rec:document.getElementById('ccf-rec').value,ns:parseFloat(document.getElementById('ccf-ns').value)||0,ex:parseFloat(document.getElementById('ccf-ex').value)||0,grav:parseFloat(document.getElementById('ccf-grav').value)||0,iva:parseFloat(document.getElementById('ccf-iva').value)||0,ivap:parseFloat(document.getElementById('ccf-ivap').value)||0,ivar:parseFloat(document.getElementById('ccf-ivar').value)||0,total:parseFloat(document.getElementById('ccf-total').value)||0};}
+  else if(t==='cf'){d={fecha:document.getElementById('cf-fecha').value,ctrl:document.getElementById('cf-ctrl').value,sello:document.getElementById('cf-sello').value,cod:document.getElementById('cf-cod').value,ns:parseFloat(document.getElementById('cf-ns').value)||0,ex:parseFloat(document.getElementById('cf-ex').value)||0,grav:parseFloat(document.getElementById('cf-grav').value)||0,total:parseFloat(document.getElementById('cf-total').value)||0};}
+  else{
+    // Al crear nuevo, preservar clasificaciones si se está editando
+    var prevTipoOp='1',prevClasif='1',prevSector='4',prevTipoCosto='4';
+    if(editIdx[t]>=0){prevTipoOp=data[t][editIdx[t]].tipoOp||'1';prevClasif=data[t][editIdx[t]].clasif||'1';prevSector=data[t][editIdx[t]].sector||'4';prevTipoCosto=data[t][editIdx[t]].tipoCosto||'4';}
+    d={fecha:document.getElementById('comp-fecha').value,cod:document.getElementById('comp-cod').value,nrc:document.getElementById('comp-nrc').value,prov:document.getElementById('comp-prov').value,ns:parseFloat(document.getElementById('comp-ns').value)||0,ex:parseFloat(document.getElementById('comp-ex').value)||0,grav:parseFloat(document.getElementById('comp-grav').value)||0,iva:parseFloat(document.getElementById('comp-iva').value)||0,total:parseFloat(document.getElementById('comp-total').value)||0,tipoOp:prevTipoOp,clasif:prevClasif,sector:prevSector,tipoCosto:prevTipoCosto};
+  }
+  if(editIdx[t]>=0){data[t][editIdx[t]]=d;}else{data[t].push(d);}
+  closeModal(t);renderAll();showToast('Registro guardado correctamente');
+}
+
+// ── Importar JSON ─────────────────────────────────────────────────────────
+var pendingImport = []; // holds parsed docs waiting for confirmation
+
+var TIPO_DTE_LABEL = {
+  '01':'Factura CF','03':'CCF','05':'Nota de Crédito','06':'Nota de Débito',
+  '07':'Comprobante de Retención','08':'Comprobante de Liquidación',
+  '09':'Documento Contable de Liquidación','11':'Factura de Exportación',
+  '14':'Factura de Sujeto Excluido','15':'Comprobante de Donación'
+};
+
+
+function buildRecord(j, destino) {
+  var id = j.identificacion || {};
+  var em = j.emisor || {};
+  var re = j.receptor || {};
+  var res = j.resumen || {};
+  var fec = id.fecEmi || '';
+  var parts = fec.split('-');
+  var fechaFmt = parts.length === 3 ? parts[2]+'/'+parts[1]+'/'+parts[0] : fec;
+  var sello = j.selloRecibido || '';
+  var ctrl = id.numeroControl || '';
+  var cod = (id.codigoGeneracion || '').replace(/-/g,'');
+
+  function ivaFromTributos(tributos) {
+    var v = 0;
+    if (tributos && tributos.length) tributos.forEach(function(t){if(t.codigo==='20') v+=parseFloat(t.valor)||0;});
+    return v;
+  }
+
+  if (destino === 'ccf') {
+    return {
+      fecha:fechaFmt, sello:sello, ctrl:ctrl, cod:cod,
+      nrc:re.nrc||'', rec:(re.nombre||'').toUpperCase(),
+      ns:parseFloat(res.totalNoSuj)||0, ex:parseFloat(res.totalExenta)||0,
+      grav:parseFloat(res.totalGravada)||0,
+      iva:ivaFromTributos(res.tributos)||parseFloat(res.ivaPerci1)||0,
+      ivap:parseFloat(res.ivaPerci1)||0, ivar:parseFloat(res.ivaRete1)||0,
+      total:parseFloat(res.totalPagar)||0
+    };
+  } else if (destino === 'cf') {
+    return {
+      fecha:fechaFmt, ctrl:ctrl.replace(/-/g,''), sello:sello, cod:cod,
+      ns:parseFloat(res.totalNoSuj)||0, ex:parseFloat(res.totalExenta)||0,
+      grav:parseFloat(res.totalGravada)||0,
+      total:parseFloat(res.totalPagar)||0
+    };
+  } else { // comp
+    // Extraer IVA (código 20), FOVIAL (D1) y COTRANS (C8) de tributos
+    var ivaComp = 0, fovialCotrans = 0;
+    if (res.tributos && res.tributos.length) {
+      res.tributos.forEach(function(t) {
+        if (t.codigo === '20') ivaComp += parseFloat(t.valor) || 0;
+        if (t.codigo === 'D1' || t.codigo === 'C8') fovialCotrans += parseFloat(t.valor) || 0;
+      });
+    }
+    // Si el JSON no trae totalNoSuj pero sí tiene FOVIAL/COTRANS en tributos,
+    // usamos fovialCotrans como no sujeto
+    var nsComp = parseFloat(res.totalNoSuj) || 0;
+    if (nsComp === 0 && fovialCotrans > 0) nsComp = fovialCotrans;
+
+    return {
+      fecha:fechaFmt, cod:cod, nrc:em.nrc||'',
+      prov:(em.nombre||'').toUpperCase(),
+      ns:nsComp,
+      ex:parseFloat(res.totalExenta)||0,
+      grav:parseFloat(res.totalGravada)||0,
+      iva:ivaComp || ivaFromTributos(res.tributos),
+      total:parseFloat(res.totalPagar)||0,
+      tipoOp:'1', clasif:'1', sector:'4', tipoCosto:'4'
+    };
+  }
+}
+
+function saveMiNRC() {
+  localStorage && localStorage.setItem('miNRC', document.getElementById('mi-nrc').value.trim());
+}
+
+function getMiNRC() {
+  return document.getElementById('mi-nrc').value.trim();
+}
+
+// Returns set of all codigoGeneracion already loaded
+function getCodigos() {
+  var set = {};
+  ['ccf','cf','comp'].forEach(function(t){
+    data[t].forEach(function(d){ if(d.cod) set[d.cod.toUpperCase()] = t; });
+  });
+  return set;
+}
+
+function previewJSON(input) {
+  var files = Array.from(input.files);
+  if (!files.length) return;
+
+  var miNRC = getMiNRC();
+  if (!miNRC) {
+    document.getElementById('nrc-hint').style.display = '';
+  } else {
+    document.getElementById('nrc-hint').style.display = 'none';
+  }
+
+  pendingImport = [];
+  var unrecognized = [];
+  var duplicados = [];
+  var loaded = 0;
+  var existingCods = getCodigos();
+
+  files.forEach(function(file) {
+    var r = new FileReader();
+    r.onload = function(e) {
+      loaded++;
+      var entry = {fileName: file.name, json: null, tipoDte: null, destino: null, record: null, error: null, duplicate: false, dupTab: null};
+      try {
+        var j = JSON.parse(e.target.result);
+        var id = j.identificacion || {};
+        var tipoDte = id.tipoDte || '??';
+        var cod = (id.codigoGeneracion || '').replace(/-/g,'').toUpperCase();
+        entry.json = j;
+        entry.tipoDte = tipoDte;
+
+        // ── Validar duplicado ──────────────────────────────────────
+        if (cod && existingCods[cod]) {
+          entry.duplicate = true;
+          entry.dupTab = existingCods[cod];
+          entry.destino = 'skip';
+          duplicados.push(entry);
+          // No agregamos a pendingImport, va solo a duplicados
+        } else {
+          // ── Clasificar ────────────────────────────────────────────
+          var destino;
+          var emNRC = ((j.emisor||{}).nrc||'').trim();
+          var reNRC = ((j.receptor||{}).nrc||'').trim();
+
+          if (tipoDte === '01') {
+            // Factura CF: solo la emite el vendedor
+            destino = 'cf';
+          } else if (tipoDte === '03') {
+            // CCF: si yo soy el EMISOR → venta CCF; si yo soy el RECEPTOR → compra
+            if (miNRC && emNRC === miNRC) destino = 'ccf';
+            else if (miNRC && reNRC === miNRC) destino = 'comp';
+            else destino = 'comp'; // sin NRC propio, default a compra (más conservador)
+          } else if (tipoDte === '05' || tipoDte === '06') {
+            // Nota crédito/débito: igual aplica emisor/receptor
+            if (miNRC && emNRC === miNRC) destino = 'ccf';
+            else destino = 'comp';
+          } else if (['07','08','09','11','14','15'].indexOf(tipoDte) >= 0) {
+            destino = 'comp';
+          } else {
+            destino = 'comp';
+          }
+
+          entry.destino = destino;
+          entry.record = buildRecord(j, destino);
+          // Agregar al set para detectar dupes entre los archivos subidos en el mismo lote
+          if (cod) existingCods[cod] = destino;
+          pendingImport.push(entry);
+        }
+      } catch(err) {
+        entry.error = 'JSON inválido';
+        unrecognized.push(entry);
+      }
+
+      if (loaded === files.length) {
+        showClassifyModal(unrecognized, duplicados);
+      }
+    };
+    r.readAsText(file);
+  });
+  input.value = '';
+}
+
+function showClassifyModal(unrecognized, duplicados) {
+  var list = document.getElementById('classify-list');
+  list.innerHTML = '';
+  duplicados = duplicados || [];
+
+  if (!pendingImport.length && !unrecognized.length && !duplicados.length) {
+    showToast('No se encontraron documentos válidos');
+    return;
+  }
+  // If only dupes/errors, still show modal to inform user
+  if (!pendingImport.length) {
+    // Show a simplified modal with just the warnings
+  }
+
+  var destinoInfo = {
+    ccf: {label:'Venta CCF', color:'#042C53', bg:'#E6F1FB', border:'#85B7EB'},
+    cf:  {label:'Venta CF',  color:'#173404', bg:'#EAF3DE', border:'#97C459'},
+    comp:{label:'Compra',    color:'#412402', bg:'#FAEEDA', border:'#EF9F27'}
+  };
+
+  pendingImport.forEach(function(entry, idx) {
+    var id = entry.json.identificacion || {};
+    var em = entry.json.emisor || {};
+    var re = entry.json.receptor || {};
+    var res = entry.json.resumen || {};
+    var total = parseFloat(res.totalPagar||0).toFixed(2);
+    var tipoDteLabel = TIPO_DTE_LABEL[entry.tipoDte] || ('Tipo '+entry.tipoDte);
+    var emisorNombre = (em.nombre||'—').toUpperCase();
+    var receptorNombre = (re.nombre||'—').toUpperCase();
+    var info = destinoInfo[entry.destino] || destinoInfo.comp;
+
+    var row = document.createElement('div');
+    row.style.cssText = 'padding:10px 12px;border-bottom:1px solid #e8e8e8;';
+    row.innerHTML =
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'+
+        '<span style="font-size:10px;color:#888;flex:0 0 auto;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+entry.fileName+'">📄 '+entry.fileName+'</span>'+
+        '<span style="font-size:10px;background:#f0f0f0;color:#555;padding:2px 7px;border-radius:10px;flex:0 0 auto;">'+tipoDteLabel+'</span>'+
+        '<span style="flex:1"></span>'+
+        '<span style="font-size:12px;font-weight:600;color:#1a1a1a;">$'+total+'</span>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;gap:8px;">'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="font-size:10px;color:#888;margin-bottom:2px;">Emisor</div>'+
+          '<div style="font-size:11px;font-weight:600;color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+emisorNombre+'">'+emisorNombre+'</div>'+
+        '</div>'+
+        '<div style="color:#aaa;font-size:14px;">→</div>'+
+        '<div style="flex:1;min-width:0;text-align:right;">'+
+          '<div style="font-size:10px;color:#888;margin-bottom:2px;">Receptor</div>'+
+          '<div style="font-size:11px;font-weight:600;color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+receptorNombre+'">'+receptorNombre+'</div>'+
+        '</div>'+
+        '<div style="flex:0 0 140px;margin-left:10px;">'+
+          '<select data-idx="'+idx+'" onchange="changePendingDest(this)" style="width:100%;font-size:11px;padding:4px 6px;border:1.5px solid '+info.border+';border-radius:5px;background:'+info.bg+';color:'+info.color+';font-weight:600;cursor:pointer;">'+
+            '<option value="comp"'+(entry.destino==='comp'?' selected':'')+'>📥 Compra</option>'+
+            '<option value="ccf"'+(entry.destino==='ccf'?' selected':'')+'>🔵 Venta CCF</option>'+
+            '<option value="cf"'+(entry.destino==='cf'?' selected':'')+'>🟢 Venta CF</option>'+
+            '<option value="skip">⛔ Omitir</option>'+
+          '</select>'+
+        '</div>'+
+      '</div>';
+    list.appendChild(row);
+  });
+
+  var unrecDiv = document.getElementById('classify-unrecognized');
+  var dupeHtml = '';
+  if (duplicados.length) {
+    dupeHtml = '<div style="margin-top:10px;padding:10px 12px;background:#FFF3CD;border:1px solid #FFCA2C;border-radius:6px;font-size:11px;color:#5C3D00;">'+
+      '🚫 <strong>'+duplicados.length+' documento(s) duplicado(s) — serán omitidos automáticamente:</strong><br><ul style="margin:6px 0 0 16px;">'+
+      duplicados.map(function(d){
+        var tabLabel = d.dupTab==='ccf'?'Ventas CCF':d.dupTab==='cf'?'Consumidor Final':'Compras';
+        var cod = ((d.json&&d.json.identificacion&&d.json.identificacion.codigoGeneracion)||'').substring(0,12)+'...';
+        return '<li style="margin-bottom:3px;"><strong>'+d.fileName+'</strong> — ya existe en <em>'+tabLabel+'</em> ('+cod+')</li>';
+      }).join('')+'</ul></div>';
+  }
+  if (unrecognized.length) {
+    unrecDiv.style.display = '';
+    unrecDiv.innerHTML = '⚠️ '+unrecognized.length+' archivo(s) no pudieron leerse como JSON válido: '+
+      unrecognized.map(function(u){return '<strong>'+u.fileName+'</strong>';}).join(', ');
+  } else {
+    unrecDiv.style.display = 'none';
+  }
+  // Inject dupe warning after unrecDiv
+  var dupeDiv = document.getElementById('classify-dupes');
+  if (!dupeDiv) {
+    dupeDiv = document.createElement('div');
+    dupeDiv.id = 'classify-dupes';
+    unrecDiv.parentNode.insertBefore(dupeDiv, unrecDiv.nextSibling);
+  }
+  dupeDiv.innerHTML = dupeHtml;
+
+  updateClassifySummary();
+  document.getElementById('ov-classify').classList.add('open');
+}
+
+function changePendingDest(sel) {
+  var idx = parseInt(sel.dataset.idx);
+  var newDest = sel.value;
+  if (newDest !== 'skip') {
+    pendingImport[idx].destino = newDest;
+    pendingImport[idx].record = buildRecord(pendingImport[idx].json, newDest);
+    // Update select color
+    var info = {ccf:{color:'#042C53',bg:'#E6F1FB',border:'#85B7EB'},cf:{color:'#173404',bg:'#EAF3DE',border:'#97C459'},comp:{color:'#412402',bg:'#FAEEDA',border:'#EF9F27'}};
+    var i = info[newDest] || {color:'#555',bg:'#f5f5f5',border:'#ccc'};
+    sel.style.background = i.bg; sel.style.color = i.color; sel.style.borderColor = i.border;
+  } else {
+    pendingImport[idx].destino = 'skip';
+    sel.style.background='#f5f5f5'; sel.style.color='#999'; sel.style.borderColor='#ccc';
+  }
+  updateClassifySummary();
+}
+
+function updateClassifySummary() {
+  var counts = {ccf:0, cf:0, comp:0, skip:0};
+  pendingImport.forEach(function(e){ counts[e.destino] = (counts[e.destino]||0)+1; });
+  var parts = [];
+  if (counts.ccf)  parts.push(counts.ccf+' CCF');
+  if (counts.cf)   parts.push(counts.cf+' CF');
+  if (counts.comp) parts.push(counts.comp+' Compra(s)');
+  if (counts.skip) parts.push(counts.skip+' omitido(s)');
+  document.getElementById('classify-summary').textContent = parts.join(' · ');
+}
+
+function confirmImport() {
+  var added = 0;
+  var counts = {ccf:0, cf:0, comp:0};
+  var validDest = ['ccf','cf','comp'];
+  pendingImport.forEach(function(entry) {
+    if (!entry.record || validDest.indexOf(entry.destino) < 0) return;
+    data[entry.destino].push(entry.record);
+    counts[entry.destino]++;
+    added++;
+  });
+  pendingImport = [];
+  document.getElementById('ov-classify').classList.remove('open');
+  // Switch to the tab where most docs were imported
+  if (added > 0) {
+    var bestTab = 'ccf';
+    if (counts.comp >= counts.ccf && counts.comp >= counts.cf) bestTab = 'comp';
+    else if (counts.cf >= counts.ccf) bestTab = 'cf';
+    switchTab(bestTab);
+  }
+  setTimeout(function(){ renderAll(); }, 50);
+  showToast(added > 0 ? added+' documento(s) importado(s) correctamente' : 'No se importó ningún documento');
+}
+
+// ── Exportar CSV ──────────────────────────────────────────────────────────
+function exportCSV(t){
+  var rows=[],fn='';
+  if(t==='ccf'){
+    // Anexo 1 - Ventas a Contribuyentes (CCF) - 20 columnas
+    // A=Fecha B=Clase C=TipoDte D=N°Resolución(ctrl sin guiones) E=N°Serie(sello)
+    // F=N°Documento(cod) G=CtrlInterno(vacío DTE) H=NIT/NRC I=Nombre
+    // J=VtasExentas K=VtasNoSujetas L=VtasGravLocales M=DébitoFiscal
+    // N=Vtas3erosND O=Débito3eros P=Total Q=DUI(vacío) R=TipoOp S=TipoIngreso T=Anexo(1)
+    fn='ANEXO_CONTRIBUYENTES.csv';
+    data.ccf.forEach(function(d){
+      var ctrl = (d.ctrl||'').replace(/-/g,'');
+      rows.push([
+        d.fecha,        // A - Fecha DD/MM/AAAA
+        '4',            // B - Clase: DTE
+        '03',           // C - Tipo documento: CCF
+        ctrl,           // D - N° Resolución = número de control sin guiones
+        d.sello||'',    // E - N° Serie = sello de recepción
+        d.cod||'',      // F - N° Documento = código de generación sin guiones
+        '',             // G - Control Interno: vacío para DTE
+        d.nrc||'',      // H - NIT o NRC del cliente
+        d.rec||'',      // I - Nombre/Razón Social
+        f(d.ex),        // J - Ventas Exentas
+        f(d.ns),        // K - Ventas No Sujetas
+        f(d.grav),      // L - Ventas Gravadas Locales
+        f(d.iva),       // M - Débito Fiscal
+        '0.00',         // N - Ventas a cuenta de terceros ND
+        '0.00',         // O - Débito fiscal por venta a terceros
+        f(d.total),     // P - Total Ventas
+        '',             // Q - DUI del cliente (vacío si usa NRC)
+        '1',            // R - Tipo de Operación (Renta): 1=Gravada
+        '3',            // S - Tipo de Ingreso (Renta): 3=Actividades Comerciales
+        '1'             // T - Número de Anexo
+      ].join(';'));
+    });
+  } else if(t==='cf'){
+    // Anexo 2 - Ventas a Consumidor Final - 23 columnas
+    // Para DTE: D=N/A E=N/A F=N/A G=N/A H=CodGen1erDTE I=CodGenÚltimoDTE J=vacío
+    fn='ANEXO_CONSUMIDOR_FINAL.csv';
+    data.cf.forEach(function(d){
+      rows.push([
+        d.fecha,        // A - Fecha DD/MM/AAAA
+        '4',            // B - Clase: DTE
+        '01',           // C - Tipo: Factura CF
+        'N/A',          // D - Número Resolución (N/A para DTE agrupados por día)
+        'N/A',          // E - Serie (N/A para DTE)
+        'N/A',          // F - Control Interno Del (N/A para DTE)
+        'N/A',          // G - Control Interno Al (N/A para DTE)
+        d.cod||'',      // H - N° Documento Del = código generación primer DTE del día
+        d.cod||'',      // I - N° Documento Al = código generación último DTE del día
+        '',             // J - N° Máquina Registradora (vacío para DTE)
+        f(d.ex),        // K - Ventas Exentas
+        '0.00',         // L - Ventas Internas Exentas No Sujetas Proporcionalidad
+        f(d.ns),        // M - Ventas No Sujetas
+        f(d.grav),      // N - Ventas Gravadas Locales (con IVA incluido)
+        '0.00',         // O - Exportaciones dentro CA
+        '0.00',         // P - Exportaciones fuera CA
+        '0.00',         // Q - Exportaciones de Servicios
+        '0.00',         // R - Ventas Zonas Francas/DPA
+        '0.00',         // S - Ventas a cuenta de terceros ND
+        f(d.total),     // T - Total Ventas
+        '1',            // U - Tipo Operación (Renta): 1=Gravada
+        '3',            // V - Tipo Ingreso (Renta): 3=Actividades Comerciales
+        '2'             // W - Número de Anexo
+      ].join(';'));
+    });
+  } else {
+    // Anexo 3 - Detalle de Compras - 21 columnas
+    // A=Fecha B=Clase(4) C=Tipo(03) D=N°Doc(cod) E=NIT/NRC F=Nombre
+    // G=ComprasIntExNS H=InternExNS I=ImportExNS J=ComprasIntGrav
+    // K=InternGrav L=ImportGravBienes M=ImportGravSvcs N=CréditoFiscal
+    // O=Total P=DUI(vacío) Q=TipoOp R=Clasif S=Sector T=TipoCosto U=Anexo(3)
+    fn='ANEXO_COMPRAS.csv';
+    data.comp.forEach(function(d){
+      rows.push([
+        d.fecha,              // A - Fecha DD/MM/AAAA
+        '4',                  // B - Clase: DTE
+        '03',                 // C - Tipo documento: CCF
+        d.cod||'',            // D - N° Documento = código generación sin guiones
+        d.nrc||'',            // E - NIT o NRC del proveedor
+        d.prov||'',           // F - Nombre del proveedor
+        f(d.ns + d.ex),       // G - Compras Internas Exentas y/o No Sujetas (FOVIAL+COTRANS+exentas)
+        '0.00',               // H - Internaciones Exentas y/o No Sujetas
+        '0.00',               // I - Importaciones Exentas y/o No Sujetas
+        f(d.grav),            // J - Compras Internas Gravadas
+        '0.00',               // K - Internaciones Gravadas de Bienes
+        '0.00',               // L - Importaciones Gravadas de Bienes
+        '0.00',               // M - Importaciones Gravadas de Servicios
+        f(d.iva),             // N - Crédito Fiscal (13% de J+K+L+M)
+        f(d.total),           // O - Total de Compras
+        '',                   // P - DUI del proveedor (vacío si usa NRC)
+        d.tipoOp||'1',        // Q - Tipo de Operación
+        d.clasif||'1',        // R - Clasificación
+        d.sector||'4',        // S - Sector
+        d.tipoCosto||'4',     // T - Tipo de Costo/Gasto
+        '3'                   // U - Número de Anexo
+      ].join(';'));
+    });
+  }
+  var blob=new Blob([rows.join('\r\n')],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download=fn;a.click();URL.revokeObjectURL(url);
+  showToast('CSV exportado: '+fn);
+}
+
+// ── Exportar Excel ────────────────────────────────────────────────────────
+function exportExcel(){
+  var wb=XLSX.utils.book_new();
+  var ccfRows=[['Fecha','Sello Recepción','N° Control','Código Generación','NRC Receptor','Receptor','No Sujeta','Exenta','Gravada','IVA','IVA Percibido','IVA Retenido','Total']];
+  data.ccf.forEach(function(d){ccfRows.push([d.fecha,d.sello,d.ctrl,d.cod,d.nrc,d.rec,d.ns,d.ex,d.grav,d.iva,d.ivap,d.ivar,d.total]);});
+  var wsCCF=XLSX.utils.aoa_to_sheet(ccfRows);
+  wsCCF['!cols']=[{wch:12},{wch:42},{wch:38},{wch:34},{wch:10},{wch:38},{wch:9},{wch:9},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,wsCCF,'Contribuyentes CCF');
+
+  var cfRows=[['Fecha','N° Control','Sello Recepción','Código Generación','No Sujeta','Exenta','Gravada (IVA incl.)','Total']];
+  data.cf.forEach(function(d){cfRows.push([d.fecha,d.ctrl,d.sello,d.cod,d.ns,d.ex,d.grav,d.total]);});
+  var wsCF=XLSX.utils.aoa_to_sheet(cfRows);
+  wsCF['!cols']=[{wch:12},{wch:32},{wch:44},{wch:34},{wch:9},{wch:9},{wch:16},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,wsCF,'Consumidor Final');
+
+  var compRows=[['Fecha','Código Generación','NRC Proveedor','Proveedor','No Sujeta','Exenta','Gravada','IVA','Total','Tipo Operación','Clasificación','Sector','Tipo Costo/Gasto']];
+  data.comp.forEach(function(d){compRows.push([d.fecha,d.cod,d.nrc,d.prov,d.ns,d.ex,d.grav,d.iva,d.total,d.tipoOp||'1',d.clasif||'1',d.sector||'4',d.tipoCosto||'4']);});
+  var wsComp=XLSX.utils.aoa_to_sheet(compRows);
+  wsComp['!cols']=[{wch:12},{wch:34},{wch:12},{wch:38},{wch:9},{wch:9},{wch:10},{wch:10},{wch:10},{wch:14},{wch:14},{wch:10},{wch:16}];
+  XLSX.utils.book_append_sheet(wb,wsComp,'Compras');
+
+  XLSX.writeFile(wb,'LIBRO_IVA.xlsx');
+  showToast('Excel exportado con 3 pestañas');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+renderAll();
+</script>
