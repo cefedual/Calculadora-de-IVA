@@ -23,10 +23,12 @@ body{font-family:Arial,sans-serif;font-size:13px;color:#1a1a1a;background:#fff;}
 .tab.t-ccf.active{background:#E6F1FB;color:#042C53;border-color:#85B7EB;}
 .tab.t-cf.active{background:#EAF3DE;color:#173404;border-color:#97C459;}
 .tab.t-comp.active{background:#FAEEDA;color:#412402;border-color:#EF9F27;}
+.tab.t-resumen.active{background:#EDE7F6;color:#2E1A47;border-color:#B39DDB;}
 .tab:hover:not(.active){background:#e0e0e0;}
 .panel{display:none;border:1.5px solid #85B7EB;border-radius:0 8px 8px 8px;padding:1rem;background:#fff;}
 .panel.t-cf-panel{border-color:#97C459;}
 .panel.t-comp-panel{border-color:#EF9F27;}
+.panel.t-resumen-panel{border-color:#B39DDB;}
 .panel.active{display:block;}
 .p-toolbar{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;}
 .p-title{font-size:13px;font-weight:500;flex:1;color:#444;}
@@ -41,6 +43,9 @@ body{font-family:Arial,sans-serif;font-size:13px;color:#1a1a1a;background:#fff;}
 .stat-value{font-size:18px;font-weight:500;color:#042C53;}
 .stat-cf .stat-value{color:#173404;}
 .stat-comp .stat-value{color:#412402;}
+.stat-resumen{background:#EDE7F6;}
+.stat-resumen .stat-label{color:#5B3A8E;}
+.stat-resumen .stat-value{color:#2E1A47;}
 .tw{overflow-x:auto;border:1px solid #B5D4F4;border-radius:8px;}
 .tw.tw-cf{border-color:#C0DD97;}
 .tw.tw-comp{border-color:#FAC775;}
@@ -116,6 +121,7 @@ tr:hover td{background:#f5f8fc;}
   <div class="tab t-ccf active" onclick="switchTab('ccf')">Contribuyentes (CCF)</div>
   <div class="tab t-cf" onclick="switchTab('cf')">Consumidor Final</div>
   <div class="tab t-comp" onclick="switchTab('comp')">Compras</div>
+  <div class="tab t-resumen" onclick="switchTab('resumen')">RESUMEN</div>
 </div>
 
 <!-- PANEL CCF -->
@@ -214,6 +220,45 @@ tr:hover td{background:#f5f8fc;}
   </div>
 </div>
 
+<!-- PANEL RESUMEN -->
+<div class="panel t-resumen-panel" id="p-resumen">
+  <div class="p-toolbar">
+    <span class="p-title">Resumen de IVA — Compras vs. Ventas del período</span>
+  </div>
+  <div class="stats" id="st-resumen"></div>
+
+  <div style="margin-top:1.2rem;padding:1rem;border:1.5px solid #B39DDB;border-radius:8px;background:#FAF8FD;">
+    <div style="font-size:13px;font-weight:600;color:#2E1A47;margin-bottom:10px;">Desglose IVA a pagar (Débito Fiscal − Crédito Fiscal)</div>
+    <table style="width:100%;font-size:12px;border-collapse:collapse;">
+      <tr><td style="padding:5px 0;color:#444;">Débito Fiscal — Ventas (CCF + Consumidor Final)</td><td class="amt" id="rs-debito" style="text-align:right;font-weight:500;">$0.00</td></tr>
+      <tr><td style="padding:5px 0;color:#444;">Crédito Fiscal — Compras</td><td class="amt" id="rs-credito" style="text-align:right;font-weight:500;">$0.00</td></tr>
+      <tr style="border-top:1px solid #ddd;"><td style="padding:8px 0;font-weight:600;color:#2E1A47;" id="rs-resultado-label">IVA a pagar</td><td class="amt" id="rs-resultado" style="text-align:right;font-weight:700;font-size:14px;">$0.00</td></tr>
+    </table>
+  </div>
+
+  <div style="margin-top:1rem;padding:1rem;border:1.5px solid #B39DDB;border-radius:8px;background:#FAF8FD;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:13px;font-weight:600;color:#2E1A47;">Pago a Cuenta (anticipo ISR)</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:11px;">
+        <label style="color:#5B3A8E;">Tasa:</label>
+        <input id="rs-tasa" type="number" step="0.01" min="0" value="1.75" oninput="renderResumen()" style="width:60px;padding:3px 6px;border:1.5px solid #B39DDB;border-radius:5px;font-size:12px;text-align:right;color:#2E1A47;">
+        <span style="color:#5B3A8E;">%</span>
+      </div>
+    </div>
+    <table style="width:100%;font-size:12px;border-collapse:collapse;">
+      <tr><td style="padding:5px 0;color:#444;">Ingresos brutos (ventas netas de IVA: gravada + exenta + no sujeta)</td><td class="amt" id="rs-ingresos" style="text-align:right;font-weight:500;">$0.00</td></tr>
+      <tr style="border-top:1px solid #ddd;"><td style="padding:8px 0;font-weight:600;color:#2E1A47;">Pago a Cuenta</td><td class="amt" id="rs-pagocuenta" style="text-align:right;font-weight:700;font-size:14px;">$0.00</td></tr>
+    </table>
+    <div style="font-size:10px;color:#854F0B;margin-top:8px;">⚠️ 1.75% es la tasa general del anticipo a cuenta. Ajustá el % si tu empresa tiene una tasa especial (verificalo con tu contador o en el DGII) — el valor queda guardado.</div>
+  </div>
+
+  <div style="margin-top:1rem;padding:1rem;border:2px solid #2E1A47;border-radius:8px;background:#2E1A47;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+    <span style="font-size:13px;font-weight:600;">TOTAL A PAGAR (IVA + Pago a Cuenta)</span>
+    <span id="rs-total-pagar" style="font-size:20px;font-weight:700;">$0.00</span>
+  </div>
+  <div style="font-size:10px;color:#888;margin-top:8px;">* Si el Crédito Fiscal supera al Débito Fiscal, ese exceso queda como "Remanente" a favor y no se suma al Pago a Cuenta.</div>
+</div>
+
 <!-- MODAL CCF -->
 <div class="overlay" id="ov-ccf">
 <div class="modal">
@@ -227,12 +272,12 @@ tr:hover td{background:#f5f8fc;}
   <div class="fg"><label>Código generación (sin guiones)</label><input id="ccf-cod"></div>
   <div class="fg"><label>Receptor</label><input id="ccf-rec"></div>
   <div class="fg2">
-    <div class="fg"><label>No sujetas</label><input type="number" id="ccf-ns" value="0" step="0.01"></div>
-    <div class="fg"><label>Exentas</label><input type="number" id="ccf-ex" value="0" step="0.01"></div>
+    <div class="fg"><label>No sujetas</label><input type="number" id="ccf-ns" value="0" step="0.01" oninput="calcCCFtotal()"></div>
+    <div class="fg"><label>Exentas</label><input type="number" id="ccf-ex" value="0" step="0.01" oninput="calcCCFtotal()"></div>
     <div class="fg"><label>Gravadas</label><input type="number" id="ccf-grav" value="0" step="0.01" oninput="calcCCF()"></div>
     <div class="fg"><label>IVA (13%)</label><input type="number" id="ccf-iva" value="0" step="0.01" oninput="calcCCFtotal()"></div>
-    <div class="fg"><label>IVA percibido</label><input type="number" id="ccf-ivap" value="0" step="0.01"></div>
-    <div class="fg"><label>IVA retenido</label><input type="number" id="ccf-ivar" value="0" step="0.01"></div>
+    <div class="fg"><label>IVA percibido</label><input type="number" id="ccf-ivap" value="0" step="0.01" oninput="calcCCFtotal()"></div>
+    <div class="fg"><label>IVA retenido</label><input type="number" id="ccf-ivar" value="0" step="0.01" oninput="calcCCFtotal()"></div>
     <div class="fg full"><label>Total</label><input type="number" id="ccf-total" value="0" step="0.01" readonly></div>
   </div>
   <div class="modal-footer">
@@ -252,8 +297,8 @@ tr:hover td{background:#f5f8fc;}
   <div class="fg"><label>Sello de recepción</label><input id="cf-sello"></div>
   <div class="fg"><label>Código generación (sin guiones)</label><input id="cf-cod"></div>
   <div class="fg2">
-    <div class="fg"><label>No sujetas</label><input type="number" id="cf-ns" value="0" step="0.01"></div>
-    <div class="fg"><label>Exentas</label><input type="number" id="cf-ex" value="0" step="0.01"></div>
+    <div class="fg"><label>No sujetas</label><input type="number" id="cf-ns" value="0" step="0.01" oninput="calcCFtotal()"></div>
+    <div class="fg"><label>Exentas</label><input type="number" id="cf-ex" value="0" step="0.01" oninput="calcCFtotal()"></div>
     <div class="fg"><label>Gravadas (IVA incluido)</label><input type="number" id="cf-grav" value="0" step="0.01" oninput="calcCFtotal()"></div>
     <div class="fg full"><label>Total</label><input type="number" id="cf-total" value="0" step="0.01" readonly></div>
   </div>
@@ -476,7 +521,71 @@ function renderComp(){
   document.getElementById('st-comp').innerHTML='<div class="stat stat-comp"><div class="stat-label">Documentos</div><div class="stat-value">'+data.comp.length+'</div></div><div class="stat stat-comp"><div class="stat-label">Total gravado</div><div class="stat-value">'+fmt(tot.grav)+'</div></div><div class="stat stat-comp"><div class="stat-label">Total IVA</div><div class="stat-value">'+fmt(tot.iva)+'</div></div><div class="stat stat-comp"><div class="stat-label">Total compras</div><div class="stat-value">'+fmt(tot.total)+'</div></div>';
 }
 
-function renderAll(){renderCCF();renderCF();renderComp();}
+function renderAll(){renderCCF();renderCF();renderComp();renderResumen();}
+
+// ── Render RESUMEN (Compras vs Ventas → IVA a pagar + Pago a Cuenta) ───────
+function renderResumen(){
+  // Ventas CCF: 'grav' ya es neto de IVA, 'iva' es el débito fiscal real del DTE
+  var ccfGrav=0, ccfNs=0, ccfEx=0, ccfIva=0;
+  data.ccf.forEach(function(d){ccfGrav+=d.grav; ccfNs+=d.ns; ccfEx+=d.ex; ccfIva+=d.iva;});
+
+  // Ventas CF: 'grav' incluye IVA (no hay campo IVA separado) → se extrae el 13%
+  var cfGravConIva=0, cfNs=0, cfEx=0;
+  data.cf.forEach(function(d){cfGravConIva+=d.grav; cfNs+=d.ns; cfEx+=d.ex;});
+  var cfGravNeta = cfGravConIva/1.13;
+  var cfIva = cfGravConIva - cfGravNeta;
+
+  // Compras
+  var compGrav=0, compNs=0, compEx=0, compIva=0;
+  data.comp.forEach(function(d){compGrav+=d.grav; compNs+=d.ns; compEx+=d.ex; compIva+=d.iva;});
+
+  var debitoFiscal = ccfIva + cfIva;
+  var creditoFiscal = compIva;
+  var diferencia = debitoFiscal - creditoFiscal;
+
+  var ingresosBrutos = (ccfGrav+ccfNs+ccfEx) + (cfGravNeta+cfNs+cfEx);
+  var tasaEl = document.getElementById('rs-tasa');
+  var tasa = tasaEl ? (parseFloat(tasaEl.value)||0) : 1.75;
+  var pagoCuenta = ingresosBrutos * (tasa/100);
+
+  var stEl = document.getElementById('st-resumen');
+  if(stEl){
+    stEl.innerHTML =
+      '<div class="stat stat-resumen"><div class="stat-label">Ventas gravadas (netas)</div><div class="stat-value">'+fmt(ccfGrav+cfGravNeta)+'</div></div>'+
+      '<div class="stat stat-resumen"><div class="stat-label">Compras gravadas</div><div class="stat-value">'+fmt(compGrav)+'</div></div>'+
+      '<div class="stat stat-resumen"><div class="stat-label">Débito Fiscal</div><div class="stat-value">'+fmt(debitoFiscal)+'</div></div>'+
+      '<div class="stat stat-resumen"><div class="stat-label">Crédito Fiscal</div><div class="stat-value">'+fmt(creditoFiscal)+'</div></div>';
+  }
+
+  var debitoEl=document.getElementById('rs-debito'), creditoEl=document.getElementById('rs-credito');
+  if(debitoEl) debitoEl.textContent = fmt(debitoFiscal);
+  if(creditoEl) creditoEl.textContent = fmt(creditoFiscal);
+
+  var resLabel=document.getElementById('rs-resultado-label'), resVal=document.getElementById('rs-resultado');
+  if(resLabel && resVal){
+    if(diferencia >= 0){
+      resLabel.textContent = 'IVA a pagar';
+      resVal.textContent = fmt(diferencia);
+      resVal.style.color = '#A32D2D';
+    } else {
+      resLabel.textContent = 'Remanente de crédito fiscal (a favor)';
+      resVal.textContent = fmt(Math.abs(diferencia));
+      resVal.style.color = '#0F6E56';
+    }
+  }
+
+  var ingresosEl=document.getElementById('rs-ingresos'), pagoEl=document.getElementById('rs-pagocuenta');
+  if(ingresosEl) ingresosEl.textContent = fmt(ingresosBrutos);
+  if(pagoEl) pagoEl.textContent = fmt(pagoCuenta);
+
+  var totalPagarEl=document.getElementById('rs-total-pagar');
+  if(totalPagarEl){
+    var totalPagar = Math.max(diferencia,0) + pagoCuenta;
+    totalPagarEl.textContent = fmt(totalPagar);
+  }
+
+  if(tasaEl) { localStorage && localStorage.setItem('pagoCuentaTasa', tasa); }
+}
 
 // ── Modal helpers ─────────────────────────────────────────────────────────
 function openModal(t){editIdx[t]=-1;clearForm(t);document.getElementById('mt-'+t).textContent=t==='ccf'?'Nuevo CCF':t==='cf'?'Nueva Factura CF':'Nueva compra';document.getElementById('ov-'+t).classList.add('open');}
@@ -500,8 +609,8 @@ function delRow(t,i){if(confirm('¿Eliminar este registro?')){data[t].splice(i,1
 
 // ── Cálculos ──────────────────────────────────────────────────────────────
 function calcCCF(){var g=parseFloat(document.getElementById('ccf-grav').value)||0;document.getElementById('ccf-iva').value=(g*0.13).toFixed(2);calcCCFtotal();}
-function calcCCFtotal(){var g=parseFloat(document.getElementById('ccf-grav').value)||0,iv=parseFloat(document.getElementById('ccf-iva').value)||0,ivp=parseFloat(document.getElementById('ccf-ivap').value)||0,ivr=parseFloat(document.getElementById('ccf-ivar').value)||0;document.getElementById('ccf-total').value=(g+iv+ivp-ivr).toFixed(2);}
-function calcCFtotal(){var g=parseFloat(document.getElementById('cf-grav').value)||0;document.getElementById('cf-total').value=g.toFixed(2);}
+function calcCCFtotal(){var ns=parseFloat(document.getElementById('ccf-ns').value)||0,ex=parseFloat(document.getElementById('ccf-ex').value)||0,g=parseFloat(document.getElementById('ccf-grav').value)||0,iv=parseFloat(document.getElementById('ccf-iva').value)||0,ivp=parseFloat(document.getElementById('ccf-ivap').value)||0,ivr=parseFloat(document.getElementById('ccf-ivar').value)||0;document.getElementById('ccf-total').value=(ns+ex+g+iv+ivp-ivr).toFixed(2);}
+function calcCFtotal(){var ns=parseFloat(document.getElementById('cf-ns').value)||0,ex=parseFloat(document.getElementById('cf-ex').value)||0,g=parseFloat(document.getElementById('cf-grav').value)||0;document.getElementById('cf-total').value=(ns+ex+g).toFixed(2);}
 function calcComp(){var g=parseFloat(document.getElementById('comp-grav').value)||0;document.getElementById('comp-iva').value=(g*0.13).toFixed(2);calcCompTotal();}
 function calcCompTotal(){
   var ns=parseFloat(document.getElementById('comp-ns').value)||0;
@@ -561,7 +670,7 @@ function buildRecord(j, destino) {
       nrc:re.nrc||'', rec:(re.nombre||'').toUpperCase(),
       ns:parseFloat(res.totalNoSuj)||0, ex:parseFloat(res.totalExenta)||0,
       grav:parseFloat(res.totalGravada)||0,
-      iva:ivaFromTributos(res.tributos)||parseFloat(res.ivaPerci1)||0,
+      iva:ivaFromTributos(res.tributos),
       ivap:parseFloat(res.ivaPerci1)||0, ivar:parseFloat(res.ivaRete1)||0,
       total:parseFloat(res.totalPagar)||0
     };
@@ -854,7 +963,8 @@ function exportCSV(t){
     data.ccf.forEach(function(d){
       var ctrl = (d.ctrl||'').replace(/-/g,'');
       var nitNrc = d.nrc || d.nit || '';  // NRC primero, NIT como fallback
-      var ivaCalc = (Math.round(parseFloat(d.grav) * 0.13 * 100) / 100).toFixed(2);
+      // Usar el IVA real del documento (d.iva); si no existe, recalcular 13% de la gravada como respaldo
+      var ivaCalc = (parseFloat(d.iva) || (Math.round(parseFloat(d.grav) * 0.13 * 100) / 100)).toFixed(2);
       rows.push([
         d.fecha,        // A - Fecha DD/MM/AAAA
         '4',            // B - Clase: DTE
@@ -931,7 +1041,7 @@ function exportCSV(t){
         '0.00',               // K - Internaciones Gravadas de Bienes
         '0.00',               // L - Importaciones Gravadas de Bienes
         '0.00',               // M - Importaciones Gravadas de Servicios
-        (Math.round(parseFloat(d.grav)*0.13*100)/100).toFixed(2), // N - Crédito Fiscal exacto 13%
+        (parseFloat(d.iva) || (Math.round(parseFloat(d.grav)*0.13*100)/100)).toFixed(2), // N - Crédito Fiscal (IVA real del documento; 13% como respaldo)
         f(d.total),           // O - Total de Compras
         '',                   // P - DUI del proveedor (vacío si usa NRC)
         d.tipoOp||'1',        // Q - Tipo de Operación
@@ -974,5 +1084,9 @@ function exportExcel(){
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
+(function initResumenTasa(){
+  var saved = localStorage && localStorage.getItem('pagoCuentaTasa');
+  if(saved && document.getElementById('rs-tasa')) document.getElementById('rs-tasa').value = saved;
+})();
 renderAll();
 </script>
