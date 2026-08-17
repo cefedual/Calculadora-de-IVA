@@ -963,8 +963,8 @@ function exportCSV(t){
     data.ccf.forEach(function(d){
       var ctrl = (d.ctrl||'').replace(/-/g,'');
       var nitNrc = d.nrc || d.nit || '';  // NRC primero, NIT como fallback
-      // Usar el IVA real del documento (d.iva); si no existe, recalcular 13% de la gravada como respaldo
-      var ivaCalc = (parseFloat(d.iva) || (Math.round(parseFloat(d.grav) * 0.13 * 100) / 100)).toFixed(2);
+      // Hacienda valida que el Débito Fiscal declarado sea exactamente 13% de la Gravada (no el IVA "real" del documento)
+      var ivaCalc = (Math.round(parseFloat(d.grav) * 0.13 * 100) / 100).toFixed(2);
       rows.push([
         d.fecha,        // A - Fecha DD/MM/AAAA
         '4',            // B - Clase: DTE
@@ -1041,8 +1041,8 @@ function exportCSV(t){
         '0.00',               // K - Internaciones Gravadas de Bienes
         '0.00',               // L - Importaciones Gravadas de Bienes
         '0.00',               // M - Importaciones Gravadas de Servicios
-        (parseFloat(d.iva) || (Math.round(parseFloat(d.grav)*0.13*100)/100)).toFixed(2), // N - Crédito Fiscal (IVA real del documento; 13% como respaldo)
-        f(d.total),           // O - Total de Compras
+        (Math.round(parseFloat(d.grav)*0.13*100)/100).toFixed(2), // N - Crédito Fiscal: Hacienda valida que sea exactamente 13% de J (Compras Gravadas)
+        f(d.ns + d.ex + d.grav), // O - Total de Compras = G+H+I+J+K+L+M (NO incluye el Crédito Fiscal/IVA, según formato oficial de Hacienda)
         '',                   // P - DUI del proveedor (vacío si usa NRC)
         d.tipoOp||'1',        // Q - Tipo de Operación
         d.clasif||'1',        // R - Clasificación
