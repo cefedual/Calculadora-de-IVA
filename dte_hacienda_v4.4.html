@@ -769,8 +769,11 @@ function previewJSON(input) {
           var reNRC = ((j.receptor||{}).nrc||'').trim();
 
           if (tipoDte === '01') {
-            // Factura CF: solo la emite el vendedor
-            destino = 'cf';
+            // Factura CF: si YO soy el emisor → es una venta mía (cf).
+            // Si el emisor NO es mi NRC, es una factura de un tercero a mi nombre:
+            // no trae mis datos como receptor, no es un documento declarable como compra → se omite.
+            if (miNRC && emNRC !== miNRC) destino = 'skip';
+            else destino = 'cf'; // sin NRC propio no se puede distinguir, se deja como venta por defecto
           } else if (tipoDte === '03') {
             // CCF: si yo soy el EMISOR → venta CCF; si yo soy el RECEPTOR → compra
             if (miNRC && emNRC === miNRC) destino = 'ccf';
@@ -787,7 +790,7 @@ function previewJSON(input) {
           }
 
           entry.destino = destino;
-          entry.record = buildRecord(j, destino);
+          entry.record = (destino === 'skip') ? null : buildRecord(j, destino);
           // Agregar al set para detectar dupes entre los archivos subidos en el mismo lote
           if (cod) existingCods[cod] = destino;
           pendingImport.push(entry);
@@ -823,7 +826,8 @@ function showClassifyModal(unrecognized, duplicados) {
   var destinoInfo = {
     ccf: {label:'Venta CCF', color:'#042C53', bg:'#E6F1FB', border:'#85B7EB'},
     cf:  {label:'Venta CF',  color:'#173404', bg:'#EAF3DE', border:'#97C459'},
-    comp:{label:'Compra',    color:'#412402', bg:'#FAEEDA', border:'#EF9F27'}
+    comp:{label:'Compra',    color:'#412402', bg:'#FAEEDA', border:'#EF9F27'},
+    skip:{label:'Omitir',    color:'#666',    bg:'#f0f0f0', border:'#ccc'}
   };
 
   pendingImport.forEach(function(entry, idx) {
@@ -836,6 +840,9 @@ function showClassifyModal(unrecognized, duplicados) {
     var emisorNombre = (em.nombre||'—').toUpperCase();
     var receptorNombre = (re.nombre||'—').toUpperCase();
     var info = destinoInfo[entry.destino] || destinoInfo.comp;
+    var autoSkipNote = (entry.destino === 'skip' && entry.tipoDte === '01')
+      ? '<div style="font-size:10px;color:#A32D2D;margin-top:2px;">⛔ Factura CF emitida por un tercero (no coincide con tu NRC) — no es declarable, se omite automáticamente</div>'
+      : '';
 
     var row = document.createElement('div');
     row.style.cssText = 'padding:10px 12px;border-bottom:1px solid #e8e8e8;';
@@ -846,6 +853,7 @@ function showClassifyModal(unrecognized, duplicados) {
         '<span style="flex:1"></span>'+
         '<span style="font-size:12px;font-weight:600;color:#1a1a1a;">$'+total+'</span>'+
       '</div>'+
+      autoSkipNote+
       '<div style="display:flex;align-items:center;gap:8px;">'+
         '<div style="flex:1;min-width:0;">'+
           '<div style="font-size:10px;color:#888;margin-bottom:2px;">Emisor</div>'+
@@ -861,7 +869,7 @@ function showClassifyModal(unrecognized, duplicados) {
             '<option value="comp"'+(entry.destino==='comp'?' selected':'')+'>📥 Compra</option>'+
             '<option value="ccf"'+(entry.destino==='ccf'?' selected':'')+'>🔵 Venta CCF</option>'+
             '<option value="cf"'+(entry.destino==='cf'?' selected':'')+'>🟢 Venta CF</option>'+
-            '<option value="skip">⛔ Omitir</option>'+
+            '<option value="skip"'+(entry.destino==='skip'?' selected':'')+'>⛔ Omitir</option>'+
           '</select>'+
         '</div>'+
       '</div>';
